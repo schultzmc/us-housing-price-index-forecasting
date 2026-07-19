@@ -1,0 +1,610 @@
+---
+title: "Final Project"
+author: "Madison Schultz"
+date: "2026-02-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Time Series Analysis of Housing Price Index Data Using SARIMA and ARMAX
+
+## Abstract
+Housing prices is an important economic indicator as you a large portion of Americans household wealth is in housing and also it has broad implications to consumer spending that are showcased in its fluctuations. That data set used is FHFA price index with IMF macroeconomic variables and S&P 500 data from January 1991 to December 2023. The goal of the study is to model analyze and forecast US housing prices using time series methods from non-seasonally adjusted monthly HPI at the national level. The study uses the Box-Jenkins SARIMA framework and extends that with ARMAX by including the unemployment rate and GDP as exogenous predictors. The selected model based of the AIC and BIC is SARIMA(2,1,1)(0,2,2) where all four coefficients are statistically significant. The SARIMA model fits the historical data well but when using the ARMAX model it improves on the forecast accuracy slightly. Although both models struggle to account for the post-COVID structural shock. SARIMA model captures the historical HPI dynamics well with a small improvement when addiding in additional macroeconomic variables. 
+
+### Name: Madison Schultz (madisonschultz@ucsb.edu)
+
+# Introduction
+### Background
+Housing prices are a critical economic indicator in the US as you are able to see economic conditions by looking at the trends of housing prices. Housing wealth makes up a large part of most American families household net worth. The fluctuations in HPI also have broad implications in consumer spending, financial stability, and monetary policy. For all of these reasons housing prices is a very important and significant index to look at. In this data set there are two major structural episodes which are the 2007-2009 housing crisis and 2020-2022 Covid-19 housing boom which end up have significance and showing up in the analysis throughout the results section.
+
+### Past Studies
+Past studies include "Time series analysis on predicting the US housing market prices" which applies SARIMA to HPI forecasting. This looks at trends and finds the best model by looking at ARIMA and SARIMA models. Another past study "House Price Index Accuracy and Mortgage Credit Modeling" uses FHFA HPI in order to look at its accuracy of measuring housing values and its applications in mortgage credit modeling. This dataset has been used in many different studies in order to look at different elements of housing prices.
+
+### Motivation
+The reason that I choose this dataset is because I was really interested in looking at an economic variable that had large implications and connections with other macroeconomic and financial variables. The housing price index (HPI) allows me to look at this as it has lot of data to showcase the connections it has to broader economic variables. In the analysis throughout this project it uses non-seasonally adjusted series as it is able to retain seasonal patterns which allows the SARIMA model to be used. It also has a geographic focus of the national US level data. 
+
+### Methods
+In the analysis it applies the Box-Jenkins SARIMA(p,d,q)x(P,D,Q) framework as the primary modeling where it goes through identification, estimation, and diagnostics of the SARIMA model. Then the analysis is extended to ARMAX to test whether exogenous macroeconomic variables of unemployment rate and GDP improve on the forecasting.
+
+
+### Discoveries
+Through the analysis it found that the best fitting model was SARIMA(2,1,1)(0,1,1). The model fits the historical data well but it doesn't do as will with the post-covid structural shock which can be seem in the analysis of the forecasting. After using the ARMAX extension it is shown that it provides a small improvement in the forecast accuracy although it still struggles with the post-covid structural shock. Also unemployment was found to be more relevant of a predictor than GDP. 
+
+# Data
+### Data Overview
+This data set consists of 41,265 observations across 21 variables, as it combines US housing price index records (HPI) with other variables from macroeconomics and financial market indicators. It combines data from FHFA Housing Price Index data, IMF World Economic Outlook variables, and S&P 500 daily closing prices. This data set was assembled in order to analyze three publicly available sources into just one panel. The data spans from January 1991 to December 2023. The frequency of the data depends on the variable that is being looked at ranging from monthly, quarterly, and yearly. The variable of interest in this analysis is non-seasonally adjusted HPI which is collected on a monthly basis. The geographic coverage of this data set will focus on USA national data. The variables that will be used in this analysis is index_nsa, hpi_type, and hpi_flavor which will allow for the primary time series to model and forecast. It also includes year, period, and date in order to have temporal index for ordering and decomposition. The data set also includes macroeconomic variables such as GDP, inflation, unemployment, imports, and exports that can serve as exogenous regressors. It also includes financial variables such as GSPC.Close and current account balance that can be used in co-movement analysis or GARCH volatility modeling. The data before modeling will be log-transformed to stabilize variance, checked for stationary using unit root tests, and differenced as needed.
+
+### Data Collection Methods
+This data set collects their data from multiple different sources to combine all of these elements together. It collects the HPI data from the Federal Housing Finance Agency (https://www.fhfa.gov/data/hpi). They collect the data by using repeat-sales methodology on conforming mortgage transactions. The macroeconomic variables are from the IMF World Economic Outlook database and are collected from national accounts and labor surveys (https://www.imf.org/en/Publications/WEO). Lastly, it collects data from the S&P 500 which sources from market feed such as Yahoo Finance and FRED ( https://fred.stlouisfed.org/series/SP500). This combined dataset is merging all three sources into a single panel that is pubicly available on Kaggle (https://www.kaggle.com/datasets/niranjankrishnan/us-economic-indicators-1991-2023).
+
+### Importance of Data
+This data set is important because housing wealth makes up a large share of household net worth in the US. This means that by having the ability to look at the HPI you are able to see trends that greatly impact a large portion of the net worth of households in the US. The HPI movements also have broad macroeconomic implications because it is affected by many other economic factors and also shows those effects through its changes. The 2007-2009 housing crash and recovery shows structural break material for unit root tests and threshold models. It also includes the COVID-19 housing boom of 2020-2022 that includes the sharpest appreciation periods in US history. By looking at this time period it includes many different time periods that greatly impacted the economy of the US that are shown through the data set. 
+
+### Purpose of Analysis
+The purpose of this is to decompose trend, seasonal, and cyclical components of US housing prices. First it fits a SARIMA (p, d, q) x (P, D, Q) on the non-seasonally adjusted series. This analysis uses the non-seasonally adjusted because it is able to capture the seasonal patterns of buying patterns from spring and summer to winter. By using the non-seasonally adjusted data it provides data that appropriately shows SARIMA's seasonal components. It then extends to the ARMAX/Lagged regression which uses the macro variables as predictors. It does this in order to forecast short-term HPI and evaluate model performance. 
+
+
+
+# Methodology
+The two methods that are being applied is SARIMA and ARMAX using the the series of log-transformed, non-seasonally adjusted monthly HPI from the time period of January 1991 to December 2023. It uses the Box-Jenkins approach to guide the overall process of analysis. The Box-Jenkins approach includes identification, estimation, and diagnostic checking which is applied sequentially to come to an appropriate model at the end
+
+## SARIMA (p, d, q) x (P, D, Q)
+First the analysis will go through the identification stage in which it will log-transform the HPI series to stabilize variance. It will then test for stationarity using ADF and KPSS unit root tests and apply regular difference if non-stationary. It will use seasonal periods of s = 12 for monthly data and apply seasonal difference if seasonal non-stationary is detected. It also inspect ACF and PACF plots to identify candidate p, q, P, Q orders
+
+### Model Equation
+$$
+\Phi_P(B^{12})\, \phi_p(B)\, \nabla^d \nabla_{12}^D\, y_t = \Theta_Q(B^{12})\, \theta_q(B)\, \varepsilon_t
+$$
+where:
+\begin{itemize}
+  \item $B$ is the backshift operator, defined such that $B y_t = y_{t-1}$
+  \item $\phi_p(B) = 1 - \phi_1 B - \phi_2 B^2 - \cdots - \phi_p B^p$ is the non-seasonal autoregressive polynomial of order $p$
+  \item $\Phi_P(B^{12}) = 1 - \Phi_1 B^{12} - \Phi_2 B^{24} - \cdots - \Phi_P B^{12P}$ is the seasonal autoregressive polynomial of order $P$
+  \item $\theta_q(B) = 1 + \theta_1 B + \theta_2 B^2 + \cdots + \theta_q B^q$ is the non-seasonal moving average polynomial of order $q$
+  \item $\Theta_Q(B^{12}) = 1 + \Theta_1 B^{12} + \Theta_2 B^{24} + \cdots + \Theta_Q B^{12Q}$ is the seasonal moving average polynomial of order $Q$
+  \item $\nabla^d = (1 - B)^d$ denotes regular differencing of order $d$
+  \item $\nabla_{12}^D = (1 - B^{12})^D$ denotes seasonal differencing of order $D$
+  \item $y_t$ is the log-transformed non-seasonally adjusted HPI at time $t$
+  \item $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$ is a white noise error term
+\end{itemize}
+
+It then moves on to the estimation stage where it will look at the parameters estimated by maximum likelihood estimation (MLE), and use AIC and BIC for model selection across candidate models. The lower AIC/BIC indicates the preferred model. It also goes through diagnostic checking where it checks that the residuals should behave as white noise. Includes the Ljung-Box test to check for residual autocorrelation, QQ plot to check residual normality, and inspect residual ACF/PACF to confirm no remaining structure. 
+
+
+## ARMAX/Lagged Regression
+The purpose of ARMAX/Lagged regression is to extend SARIMA by adding in additional macroeconomic variables as external predictors. This allows testing of whether macro conditions improve forecasting beyond auto regressive structure alone. It included exogenous variables such as the unemployment rate that is linked to housing demand and affordability and also GDP at constant prices which reflects the broader economic conditions. The variables are also lagged by one or more periods which allow it to realistically reflect delay and avoid simultaneity.
+
+### Model Equation
+$$
+\phi_p(B)\, \nabla^d\, y_t = \sum_{k=1}^{K} \beta_k x_{k,t} + \theta_q(B)\, \varepsilon_t
+$$
+where:
+\begin{itemize}
+  \item $y_t$ is the log-transformed non-seasonally adjusted HPI at time $t$
+  \item $\phi_p(B)$ and $\theta_q(B)$ are the autoregressive and moving average polynomials as defined in Section 3.1
+  \item $\nabla^d = (1-B)^d$ denotes regular differencing of order $d$
+  \item $x_{k,t}$ is the $k$-th exogenous variable at time $t$, where $k = 1$ corresponds to the unemployment rate and $k = 2$ corresponds to GDP at constant prices, each lagged by one or more periods
+  \item $\beta_k$ is the coefficient associated with the $k$-th exogenous variable
+  \item $K$ is the total number of exogenous variables included in the model
+  \item $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$ is a white noise error term
+\end{itemize}
+
+To evaluate the model it compares AIC and BIC against the baseline SARIMA model. It also tests the statistical significance of exogenous variables coefficients. Then it evaluates forecast accuracy using RMSE and MAE on a held out test set. Lastly it compares the SARIMA vs ARMAX forecasts to determine if macro variables add predictive value. 
+
+# Results
+## SARIMA (p, d, q) x (P, D, Q)
+```{r, message = FALSE, echo = FALSE}
+library(astsa)
+library(forecast)
+library(tseries)
+library(tidyverse)
+library(zoo)
+library(lubridate)
+library(ggplot2)
+```
+### Time Series Plots
+```{r, fig.show="hold", out.width = "50%", echo = FALSE}
+df <- read.csv("USDataset.csv")
+hpi_data <- df %>% 
+  filter( level == "USA or Census Division", place_name == "United States", hpi_flavor == "purchase-only", frequency == "monthly", hpi_type == "traditional") %>%
+  arrange(yr, period)
+
+hpi_ts <- ts(hpi_data$index_nsa, start = c(1991, 1), frequency = 12)
+hpi_log <- log(hpi_ts)
+
+autoplot(hpi_ts) + labs(title = "US House Price Index (Non-Seasonally Adjusted)", subtitle = "January 1991 to December 2023", x = "Year", y = "HPI (index_nsa)") + theme_minimal()
+
+autoplot(hpi_log) + labs(title = "Log-Transformed HPI", x = "Year", y = "Log(HPI") + theme_minimal()
+```
+The Original HPI series shows a long-run upward trend with a visible boom and bust cycle from 2006-2012. It also has steep acceleration after 2020 reflecting the Covid-19 housing boom. The series is clearly non-stationary due to the strong upward trend and the variance appears to increase over time leading to the the log transformation. After the log transformation it still includes an upward trend leading to it needed differencing. The 2007-2009 decline and 2020-2023 are still visible but smoother. There are no seasonal spikes and it is still non-stationary meaning that regular and seasonal differencing will be needed. 
+
+### ADF and KPSS stationarity tests
+Running the ADF and KPSS test on the HPI after the log transformation we get a p-value of 0.9644 from the ADF test. This means we fail to reject the null hypothesis. The KPSS test has a p-value of 0.01 meaning we reject the null hypothesis. From both these tests we get that the series is non-stationary. 
+
+We then run the ADF test and KPSS test on the differenced log HPI data. The ADF test suggests that the series is stationary while the KPSS test does not leading to using seasonal differencing.
+
+After the seasonally differencing both tests show that the series is stationary.
+
+```{r, fig.show="hold", out.width="50%", echo = FALSE}
+hpi_log_diff <- diff(hpi_log, differences = 1)
+hpi_log_diff2 <- diff(hpi_log_diff, lag = 12, differences = 1)
+# Plot the first differenced series
+autoplot(hpi_log_diff) +
+  labs(
+    title = "First Differenced Log HPI",
+    x     = "Year",
+    y     = "First Difference"
+  ) +
+  theme_minimal()
+
+# Plot the seasonally differenced series
+autoplot(hpi_log_diff2) +
+  labs(
+    title = "Seasonally Differenced Log HPI",
+    x     = "Year",
+    y     = "Seasonal Difference"
+  ) +
+  theme_minimal()
+```
+After the differencing the graphs no longer show an upward trend with both fluctuating around 0. Although it still has increased volatility around 2008-2010 and 2020-2023. 
+
+```{r, fig.show = "hold", out.width = "50%", echo = FALSE}
+ggAcf(hpi_log_diff2, lag.max = 48) + labs(title = "ACF of Differenced Log HPI") + theme_minimal()
+ggPacf(hpi_log_diff2, lag.max = 48) + labs(title = "PACF of Differenced Log HPI") + theme_minimal()
+```
+The ACF Plot shows that decays slowly across the first 10-11 lags suggesting an AR structure rather than a clean MA cutoff. Large significant spike at lag 12 confirms strong seasonality which suggest Q = 1. The negative spikes around lags 13-24 are consistent with seasonal differencing having been applied. The slow decay rather than sharp cutoff points toward p > 0. The PACF Plot shows significant spikes at lags 1 and 2 suggest p = 1 or p = 2. The large significant negative spike at lag 12 suggests P = 1. It also cuts off fairly quickly after lag 2 at the non-seasonal level. 
+
+### Model Selection
+From the ACF and PACF plots we choose 4 models to test which are SARIMA (1,1,1)(1,1,1), SARIMA(2,1,1)(1,1,1), SARIMA(1,1,0)(1,1,1), and SARIMA(2,1,0)(1,1,1). From the model selection, SARIMA (2,1,1)(0,1,1) was the best model with an AIC = -3192.76 and BIC = -3172.03. 
+
+### Diagnostics
+Diagnostic plots and output from code can be seen in the Appendix.
+The Residual Plot shows that the residuals fluctuate randomly around zero with no visible trend. Plot still shows the structural shocks of 2008-2010 and 2020-2021. The overall behavior is consistent with white noise.
+The ACF of Residuals has most spikes falling within the confidence bounds and includes no systematic patterns meaning that it captures the autocorrelation structure well.
+The QQ plot has a distribution that follows the diagonal line closely although has some deviations on both tails indicating some non-normality in the tails.
+The Ljung-Box Test has a p-value=0.371 which shows that the residuals are white noise and model is adequately specified. 
+
+### Forecast
+```{r, fig.width=10, fig.height=5, fig.show="hold", out.width = "50%", echo = FALSE}
+best_model <- Arima(hpi_log, order = c(2,1,1), seasonal = c(0,1,1))
+# Forecast 24 months ahead (2024-2025)
+sarima_forecast <- forecast(best_model, h = 24)
+
+# Plot the forecast on the log scale
+autoplot(sarima_forecast) +
+  labs(
+    title    = "SARIMA(2,1,1)(0,1,1)12 Forecast",
+    subtitle = "24-Month Ahead Forecast (2024-2025)",
+    x        = "Year",
+    y        = "Log(HPI)"
+  ) +
+  theme_minimal()
+
+# Convert forecast back to original scale by exponentiating
+sarima_forecast_orig <- sarima_forecast
+sarima_forecast_orig$mean  <- exp(sarima_forecast$mean)
+sarima_forecast_orig$lower <- exp(sarima_forecast$lower)
+sarima_forecast_orig$upper <- exp(sarima_forecast$upper)
+sarima_forecast_orig$x     <- exp(sarima_forecast$x)
+
+# Plot on the original HPI scale
+autoplot(sarima_forecast_orig) +
+  labs(
+    title    = "SARIMA(2,1,1)(0,1,1)12 Forecast (Original Scale)",
+    subtitle = "24-Month Ahead Forecast (2024-2025)",
+    x        = "Year",
+    y        = "HPI (index_nsa)"
+  ) +
+  theme_minimal()
+# Split data into train and test sets
+# Use last 24 months as test set
+train <- window(hpi_log, end = c(2021, 12))
+test  <- window(hpi_log, start = c(2022, 1))
+
+# Refit model on training data
+train_model <- Arima(train, order = c(2,1,1), 
+                     seasonal = c(0,1,1))
+
+# Forecast over the test period
+test_forecast <- forecast(train_model, h = length(test))
+```
+The log scale and original scale plots show that the model forecasting has a continuing upward trend in HPI through 2024-2025. The confidence intervals widen appropriately as the forecast horizon extends. 
+```{r}
+# Calculate accuracy metrics
+accuracy(test_forecast, test)
+```
+This shows that the test set performance has a somewhat high RMSE and MAE as they are a lot higher than training errors. The MASE on the test set means that the model performs worse than a simple navie forecast largely because of the Covid-19 housing boom. The Theil's score shows that it under performs a naive benchmark on the test period. The ACF1 indicates strong remaining autocorrelation in the forecast error meaning the model did not fully caputre the post 2022 dynamics
+
+
+
+
+
+
+## ARMAX/Lagged Regression
+```{r, echo = FALSE, result = FALSE}
+# Check the unemployment and GDP columns using correct column names
+head(hpi_data[, c("yr", "period", "Unemployment.rate", 
+                  "Gross.domestic.product..constant.prices")])
+
+# Check for missing values
+sum(is.na(hpi_data$Unemployment.rate))
+sum(is.na(hpi_data$Gross.domestic.product..constant.prices))
+```
+### Fit ARMAX Model
+After prepping the exogenous variables of unemployment and GDP variables. We create a regressor matrix in order to make sure that the two length numbers match up before fitting the model. Since they match we then fit the ARMAX model. 
+```{r, echo = FALSE, result = FALSE}
+# Create time series objects for exogenous variables
+unemp_ts <- ts(hpi_data$Unemployment.rate,
+               start = c(1991, 1), frequency = 12)
+
+gdp_ts <- ts(hpi_data$Gross.domestic.product..constant.prices,
+             start = c(1991, 1), frequency = 12)
+
+# Lag both variables by 1 period to avoid simultaneity
+unemp_lag <- stats::lag(unemp_ts, -1)
+gdp_lag   <- stats::lag(gdp_ts, -1)
+
+# Combine into regressor matrix
+xreg_full <- cbind(
+  unemp = window(unemp_lag, start = c(1991, 1), end = c(2023, 12)),
+  gdp   = window(gdp_lag,   start = c(1991, 1), end = c(2023, 12))
+)
+
+# Check dimensions match hpi_log
+cat("Length of hpi_log:", length(hpi_log), "\n")
+cat("Rows in xreg_full:", nrow(xreg_full), "\n")
+
+# Preview the regressor matrix
+head(xreg_full)
+```
+```{r, echo = FALSE}
+armax_model <- Arima(hpi_log,
+                     order    = c(2, 1, 1),
+                     seasonal = c(0, 1, 1),
+                     xreg     = xreg_full)
+
+summary(armax_model)
+```
+The ar1, ar2, ma1, and sma1 are all statistically significant as they are in the SARIMA model. unemp coefficient is only marginally significant and the gdp coefficient is not statically significant. The AIC is slightly better in the ARMAX model but the BIC is worse. Since BIC penalizes more for extra parameters the worse BIC suggests that adding the extra exogenous variables do not justify the added complexity.
+
+
+
+
+### Diagnostic
+Diagnostic plots can be viewed in the appendix section.
+The residual plot shows that the residual fluctuate randomly around zero with no visible trend. It also includes the same volatility clustering around 2008-2010 and 2020-2021.
+The ACF of Residuals shows one spike outside of the confidence intervals and has no systematic pattern.
+The Ljung-Box Test has a p-value=0.344 meaning that the residuals are confirmed as white noise.
+Thus it passes all of the diagnostic checks.
+
+### Compare SARIMA and ARMAX
+```{r, echo = FALSE}
+# Split into train and test
+xreg_train <- xreg_full[1:length(train), ]
+xreg_test  <- xreg_full[(length(train) + 1):nrow(xreg_full), ]
+
+# Refit ARMAX on training data
+armax_train <- Arima(train,
+                     order    = c(2, 1, 1),
+                     seasonal = c(0, 1, 1),
+                     xreg     = xreg_train)
+
+# Forecast over test period
+armax_test_forecast <- forecast(armax_train,
+                                xreg = xreg_test,
+                                h    = length(test))
+
+# Accuracy compared to test set
+accuracy(armax_test_forecast, test)
+```
+Above is the ARMAX accuracy test results. ARMAX outperforms SARIMA on RMSE and MAE on the test set. This means that adding unemployment and GDP as exogenous variables does provide improvement in the forecast accuracy. Although it improves on the forecast accuracy both models still have very high test error compared to training error because of the post-Covid housing appreciation. Both models also have a MASE that is above 1 meaning that neither outperforms a navie benchmark for the test period. The Theil's U improves slightly in the ARMAX model.
+
+
+
+# Conclusion and Future Study
+### Summary
+The purpose of the study is to model and forecast US national housing prices using the FHFA non-seasonaly adjusted monthly HPI from January 1991 to December 2023. It uses SARIMA and ARMX in order to do this using the Box-Jenkins approach that follows the process of identification, estimation, and diagnostic checking. 
+
+### Findings from SARIMA
+The selected model was SARIMA(2,1,1)(0,1,1) based on the lowest AIC where all four coefficients were statistically significant. The model fit the historical data well and had residual diagnostics confirmed white noise behavior. The model successfully captured the long-run upqard trend and seasonal buying patterns in housing prices
+
+### Findings from ARMAX
+Adds unemployment rate and GDP as lagged exogenous variables that provides improvements to the test RMSE and MAE meaning it has a modest improvement in forecast accuracy. BIC favored the simpler SARIMA model meaning that the exogenous variables add very limited explanatory power beyond the auto regressive structure.
+
+### Discovery/Limitation
+Both models struggled with the post-covid structural shock of 2020-2022. Also the MASE was above 1 for both models meaning that neither did better than a naive benchmark during this period. Showing a limitation of linear autoregressive models when there is a period of structural breaks. There is also volatility clustering observed around 2008-2010 and 2020-2021. 
+
+### Future Study
+Future studies that can be applied is GARCH modeling which would capture the volatility clustering in HPI residuals. Additional exogenous variables could be added to improve ARMAX performance. Could also consider nonlinear models like threshold ARIMA to better handle structural breaks. 
+
+## References
+Bogin, A. N., Doerner, W. M., and Larson, W. D. (2016). Missing the mark: House price index accuracy and mortgage credit modeling. FHFA Staff Working Paper 16-04, Federal Housing Finance Agency. https://www2.gwu.edu/~forcpgm/2016-010.pdf
+
+Federal Housing Finance Agency. (2024). House Price Index (HPI). https://www.fhfa.gov/data/hpi
+
+Hoang, T. (2024). Time series analysis on predicting the US housing market prices. SSRN Working Paper. https://doi.org/10.2139/ssrn.5003772
+
+International Monetary Fund. (2024). World Economic Outlook Database. https://www.imf.org/en/Publications/WEO
+
+Krishnan, N. (2024). US Economic Indicators 1991–2023. Kaggle. https://www.kaggle.com/datasets/niranjankrishnan/us-economic-indicators-1991-2023
+
+Federal Reserve Bank of St. Louis. (2024). S&P 500 Index (GSPC). FRED. https://fred.stlouisfed.org/series/SP500
+
+Shumway, R. H. and Stoffer, D. S. (2017). Time Series Analysis and Its Applications: With R Examples (4th ed.). Springer.
+
+## Appendix
+```{r, message = FALSE}
+library(astsa)
+library(forecast)
+library(tseries)
+library(tidyverse)
+library(zoo)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r, fig.show="hold", out.width = "50%", results = FALSE}
+df <- read.csv("USDataset.csv")
+hpi_data <- df %>% 
+  filter( level == "USA or Census Division", place_name == "United States", hpi_flavor == "purchase-only", frequency == "monthly", hpi_type == "traditional") %>%
+  arrange(yr, period)
+
+hpi_ts <- ts(hpi_data$index_nsa, start = c(1991, 1), frequency = 12)
+hpi_log <- log(hpi_ts)
+
+autoplot(hpi_ts) + labs(title = "US House Price Index (Non-Seasonally Adjusted)", subtitle = "January 1991 to December 2023", x = "Year", y = "HPI (index_nsa)") + theme_minimal()
+
+autoplot(hpi_log) + labs(title = "Log-Transformed HPI", x = "Year", y = "Log(HPI") + theme_minimal()
+```
+
+```{r}
+adf.test(hpi_log)
+kpss.test(hpi_log)
+```
+```{r}
+hpi_log_diff <- diff(hpi_log, differences = 1)
+adf.test(hpi_log_diff)
+kpss.test(hpi_log_diff)
+```
+```{r}
+hpi_log_diff2 <- diff(hpi_log_diff, lag = 12, differences = 1)
+adf.test(hpi_log_diff2)
+kpss.test(hpi_log_diff2)
+```
+```{r, fig.show="hold", out.width="50%", results = FALSE}
+# Plot the first differenced series
+autoplot(hpi_log_diff) +
+  labs(
+    title = "First Differenced Log HPI",
+    x     = "Year",
+    y     = "First Difference"
+  ) +
+  theme_minimal()
+
+# Plot the seasonally differenced series
+autoplot(hpi_log_diff2) +
+  labs(
+    title = "Seasonally Differenced Log HPI",
+    x     = "Year",
+    y     = "Seasonal Difference"
+  ) +
+  theme_minimal()
+```
+```{r, fig.show = "hold", out.width = "50%", results = FALSE}
+ggAcf(hpi_log_diff2, lag.max = 48) + labs(title = "ACF of Differenced Log HPI") + theme_minimal()
+ggPacf(hpi_log_diff2, lag.max = 48) + labs(title = "PACF of Differenced Log HPI") + theme_minimal()
+```
+```{r, results = "hide"}
+# Auto arima as a benchmark
+auto.arima(hpi_log, seasonal = TRUE, stepwise = FALSE, 
+           approximation = FALSE, trace = TRUE)
+
+# Fit candidate models manually
+m1 <- Arima(hpi_log, order = c(1,1,1), seasonal = c(1,1,1))
+m2 <- Arima(hpi_log, order = c(2,1,1), seasonal = c(1,1,1))
+m3 <- Arima(hpi_log, order = c(1,1,0), seasonal = c(1,1,1))
+m4 <- Arima(hpi_log, order = c(2,1,0), seasonal = c(1,1,1))
+
+# Compare AIC and BIC
+data.frame(
+  Model = c("SARIMA(1,1,1)(1,1,1)",
+            "SARIMA(2,1,1)(1,1,1)",
+            "SARIMA(1,1,0)(1,1,1)",
+            "SARIMA(2,1,0)(1,1,1)"),
+  AIC = c(AIC(m1), AIC(m2), AIC(m3), AIC(m4)),
+  BIC = c(BIC(m1), BIC(m2), BIC(m3), BIC(m4))
+)
+```
+```{r, fig.show="hold", out.width="50%"}
+best_model <- Arima(hpi_log, order = c(2,1,1), seasonal = c(0,1,1))
+summary(best_model)
+res <- residuals(best_model)
+autoplot(res) +
+  labs(title = "Residuals of SARIMA(2,1,1)(0,1,1)12",
+       x = "Year", y = "Residuals") +
+  theme_minimal()
+ggAcf(res, lag.max = 48) +
+  labs(title = "ACF of Residuals") +
+  theme_minimal()
+qqnorm(res)
+qqline(res, col = "blue")
+Box.test(res, lag = 24, type = "Ljung-Box")
+```
+```{r, results = FALSE}
+best_model <- Arima(hpi_log, order = c(2,1,1), seasonal = c(0,1,1))
+# Forecast 24 months ahead (2024-2025)
+sarima_forecast <- forecast(best_model, h = 24)
+
+# Plot the forecast on the log scale
+autoplot(sarima_forecast) +
+  labs(
+    title    = "SARIMA(2,1,1)(0,1,1)12 Forecast",
+    subtitle = "24-Month Ahead Forecast (2024-2025)",
+    x        = "Year",
+    y        = "Log(HPI)"
+  ) +
+  theme_minimal()
+
+# Convert forecast back to original scale by exponentiating
+sarima_forecast_orig <- sarima_forecast
+sarima_forecast_orig$mean  <- exp(sarima_forecast$mean)
+sarima_forecast_orig$lower <- exp(sarima_forecast$lower)
+sarima_forecast_orig$upper <- exp(sarima_forecast$upper)
+sarima_forecast_orig$x     <- exp(sarima_forecast$x)
+
+# Plot on the original HPI scale
+autoplot(sarima_forecast_orig) +
+  labs(
+    title    = "SARIMA(2,1,1)(0,1,1)12 Forecast (Original Scale)",
+    subtitle = "24-Month Ahead Forecast (2024-2025)",
+    x        = "Year",
+    y        = "HPI (index_nsa)"
+  ) +
+  theme_minimal()
+# Split data into train and test sets
+# Use last 24 months as test set
+train <- window(hpi_log, end = c(2021, 12))
+test  <- window(hpi_log, start = c(2022, 1))
+
+# Refit model on training data
+train_model <- Arima(train, order = c(2,1,1), 
+                     seasonal = c(0,1,1))
+
+# Forecast over the test period
+test_forecast <- forecast(train_model, h = length(test))
+
+# Calculate accuracy metrics
+accuracy(test_forecast, test)
+```
+```{r, results = FALSE}
+# Check the unemployment and GDP columns using correct column names
+head(hpi_data[, c("yr", "period", "Unemployment.rate", 
+                  "Gross.domestic.product..constant.prices")])
+
+# Check for missing values
+sum(is.na(hpi_data$Unemployment.rate))
+sum(is.na(hpi_data$Gross.domestic.product..constant.prices))
+```
+```{r, results = FALSE}
+# Create time series objects for exogenous variables
+unemp_ts <- ts(hpi_data$Unemployment.rate,
+               start = c(1991, 1), frequency = 12)
+
+gdp_ts <- ts(hpi_data$Gross.domestic.product..constant.prices,
+             start = c(1991, 1), frequency = 12)
+
+# Lag both variables by 1 period to avoid simultaneity
+unemp_lag <- stats::lag(unemp_ts, -1)
+gdp_lag   <- stats::lag(gdp_ts, -1)
+
+# Combine into regressor matrix
+xreg_full <- cbind(
+  unemp = window(unemp_lag, start = c(1991, 1), end = c(2023, 12)),
+  gdp   = window(gdp_lag,   start = c(1991, 1), end = c(2023, 12))
+)
+
+# Check dimensions match hpi_log
+cat("Length of hpi_log:", length(hpi_log), "\n")
+cat("Rows in xreg_full:", nrow(xreg_full), "\n")
+
+# Preview the regressor matrix
+head(xreg_full)
+```
+```{r}
+# Residuals of ARMAX model
+res_armax <- residuals(armax_model)
+
+autoplot(res_armax) +
+  labs(title = "Residuals of ARMAX Model",
+       x = "Year", y = "Residuals") +
+  theme_minimal()
+
+ggAcf(res_armax, lag.max = 48) +
+  labs(title = "ACF of ARMAX Residuals") +
+  theme_minimal()
+
+# Ljung-Box test
+Box.test(res_armax, lag = 24, type = "Ljung-Box")
+```
+```{r, results = FALSE}
+# Split into train and test
+xreg_train <- xreg_full[1:length(train), ]
+xreg_test  <- xreg_full[(length(train) + 1):nrow(xreg_full), ]
+
+# Refit ARMAX on training data
+armax_train <- Arima(train,
+                     order    = c(2, 1, 1),
+                     seasonal = c(0, 1, 1),
+                     xreg     = xreg_train)
+
+# Forecast over test period
+armax_test_forecast <- forecast(armax_train,
+                                xreg = xreg_test,
+                                h    = length(test))
+
+# Accuracy compared to test set
+accuracy(armax_test_forecast, test)
+```
+
+
+
+```{r save-plots-white}
+theme_white <- theme_minimal() + theme(
+  plot.background  = element_rect(fill = "white", color = NA),
+  panel.background = element_rect(fill = "white", color = NA)
+)
+
+ggsave("plot_hpi_original.png",
+       autoplot(hpi_ts) + labs(title = "US House Price Index (Non-Seasonally Adjusted)",
+       subtitle = "January 1991 to December 2023", x = "Year", y = "HPI (index_nsa)") + theme_white,
+       width = 7, height = 4, dpi = 150)
+
+ggsave("plot_diff1.png",
+       autoplot(hpi_log_diff) + labs(title = "First Differenced Log HPI",
+       x = "Year", y = "First Difference") + theme_white,
+       width = 7, height = 4, dpi = 150)
+
+ggsave("plot_diff2.png",
+       autoplot(hpi_log_diff2) + labs(title = "Seasonally Differenced Log HPI",
+       x = "Year", y = "Seasonal Difference") + theme_white,
+       width = 7, height = 4, dpi = 150)
+
+ggsave("plot_acf.png",
+       ggAcf(hpi_log_diff2, lag.max = 48) + labs(title = "ACF of Differenced Log HPI") +
+       theme_white, width = 7, height = 4, dpi = 150)
+
+ggsave("plot_pacf.png",
+       ggPacf(hpi_log_diff2, lag.max = 48) + labs(title = "PACF of Differenced Log HPI") +
+       theme_white, width = 7, height = 4, dpi = 150)
+
+ggsave("plot_sarima_res.png",
+       autoplot(res) + labs(title = "Residuals of SARIMA(2,1,1)(0,1,1)12",
+       x = "Year", y = "Residuals") + theme_white,
+       width = 7, height = 4, dpi = 150)
+
+ggsave("plot_sarima_acf.png",
+       ggAcf(res, lag.max = 48) + labs(title = "ACF of Residuals") +
+       theme_white, width = 7, height = 4, dpi = 150)
+
+png("plot_qq.png", width = 700, height = 500, bg = "white")
+qqnorm(res)
+qqline(res, col = "blue")
+dev.off()
+
+ggsave("plot_forecast.png",
+       autoplot(sarima_forecast_orig) + labs(title = "SARIMA(2,1,1)(0,1,1)12 Forecast (Original Scale)",
+       subtitle = "24-Month Ahead Forecast (2024-2025)", x = "Year", y = "HPI (index_nsa)") +
+       theme_white, width = 7, height = 4, dpi = 150)
+
+ggsave("plot_armax_res.png",
+       autoplot(res_armax) + labs(title = "Residuals of ARMAX Model",
+       x = "Year", y = "Residuals") + theme_white,
+       width = 7, height = 4, dpi = 150)
+
+ggsave("plot_armax_acf.png",
+       ggAcf(res_armax, lag.max = 48) + labs(title = "ACF of ARMAX Residuals") +
+       theme_white, width = 7, height = 4, dpi = 150)
+```

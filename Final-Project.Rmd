@@ -1,0 +1,160 @@
+---
+title: "Final Project"
+author: "Madison Schultz"
+date: "2026-02-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Title
+
+## Abstract
+
+### Name: Madison Schultz (madisonschultz@ucsb.edu)
+
+# Introduction
+
+# Data
+### Data Overview
+This data set consists of 41,265 observations across 21 variables, as it combines US housing price index records (HPI) with other variables from macroeconomics and financial market indicators. It combines data from FHFA Housing Price Index data, IMF World Economic Outlook variables, and S&P 500 daily closing prices. This data set was assembled in order to analyze three publicly available sources into just one panel. The data spans from January 1991 to December 2023. The frequency of the data depends on the variable that is being looked at ranging from monthly, quarterly, and yearly. The variable of interest in this analysis is non-seasonally adjusted HPI which is collected on a monthly basis. The geographic coverage of this data set will focus on USA national data. The variables that will be used in this analysis is index_nsa, hpi_type, and hpi_flavor which will allow for the primary time series to model and forecast. It also includes year, period, and date in order to have temporal index for ordering and decomposition. The data set also includes macroeconomic variables such as GDP, inflation, unemployment, imports, and exports that can serve as exogenous regressors. It also includes financial variables such as GSPC.Close and current account balance that can be used in co-movement analysis or GARCH volatility modeling. The data before modeling will be log-transformed to stabilize variance, checked for stationary using unit root tests, and differenced as needed.
+
+### Data Collection Methods
+This data set collects their data from multiple different sources to combine all of these elements together. It collects the HPI data from the Federal Housing Finance Agency (https://www.fhfa.gov/data/hpi). They collect the data by using repeat-sales methodology on conforming mortgage transactions. The macroeconomic variables are from the IMF World Economic Outlook database and are collected from national accounts and labor surveys (https://www.imf.org/en/Publications/WEO). Lastly, it collects data from the S&P 500 which sources from market feed such as Yahoo Finance and FRED ( https://fred.stlouisfed.org/series/SP500). This combined dataset is merging all three sources into a single panel that is pubicly available on Kaggle (https://www.kaggle.com/datasets/niranjankrishnan/us-economic-indicators-1991-2023).
+
+### Importance of Data
+This data set is important because housing wealth makes up a large share of household net worth in the US. This means that by having the ability to look at the HPI you are able to see trends that greatly impact a large portion of the net worth of households in the US. The HPI movements also have broad macroeconomic implications because it is affected by many other economic factors and also shows those effects through its changes. The 2007-2009 housing crash and recovery shows structural break material for unit root tests and threshold models. It also includes the COVID-19 housing boom of 2020-2022 that includes the sharpest appreciation periods in US history. By looking at this time period it includes many different time periods that greatly impacted the economy of the US that are shown through the data set. 
+
+### Purpose of Analysis
+The purpose of this is to decompose trend, seasonal, and cyclical components of US housing prices. First it fits a SARIMA (p, d, q) x (P, D, Q) on the non-seasonally adjusted series. This analysis uses the non-seasonally adjusted because it is able to capture the seasonal patterns of buying patterns from spring and summer to winter. By using the non-seasonally adjusted data it provides data that appropriately shows SARIMA's seasonal components. It then extends to the ARMAX/Lagged regression which uses the macro variables as predictors. It does this in order to forecast short-term HPI and evaluate model performance. 
+
+
+
+# Methodology
+The two methods that are being applied is SARIMA and ARMAX using the the series of log-transformed, non-seasonally adjusted monthly HPI from the time period of January 1991 to December 2023. It uses the Box-Jenkins approach to guide the overall process of analysis. The Box-Jenkins approach includes identification, estimation, and diagnostic checking which is applied sequentially to come to an appropriate model at the end
+
+## SARIMA (p, d, q) x (P, D, Q)
+First the analysis will go through the identification stage in which it will log-transform the HPI series to stabilize variance. It will then test for stationarity using ADF and KPSS unit root tests and apply regular difference if non-stationary. It will use seasonal periods of s = 12 for monthly data and apply seasonal difference if seasonal non-stationary is detected. It also inspect ACF and PACF plots to identify candidate p, q, P, Q orders
+
+### Model Equation
+$$
+\Phi_P(B^{12})\, \phi_p(B)\, \nabla^d \nabla_{12}^D\, y_t = \Theta_Q(B^{12})\, \theta_q(B)\, \varepsilon_t
+$$
+where:
+\begin{itemize}
+  \item $B$ is the backshift operator, defined such that $B y_t = y_{t-1}$
+  \item $\phi_p(B) = 1 - \phi_1 B - \phi_2 B^2 - \cdots - \phi_p B^p$ is the non-seasonal autoregressive polynomial of order $p$
+  \item $\Phi_P(B^{12}) = 1 - \Phi_1 B^{12} - \Phi_2 B^{24} - \cdots - \Phi_P B^{12P}$ is the seasonal autoregressive polynomial of order $P$
+  \item $\theta_q(B) = 1 + \theta_1 B + \theta_2 B^2 + \cdots + \theta_q B^q$ is the non-seasonal moving average polynomial of order $q$
+  \item $\Theta_Q(B^{12}) = 1 + \Theta_1 B^{12} + \Theta_2 B^{24} + \cdots + \Theta_Q B^{12Q}$ is the seasonal moving average polynomial of order $Q$
+  \item $\nabla^d = (1 - B)^d$ denotes regular differencing of order $d$
+  \item $\nabla_{12}^D = (1 - B^{12})^D$ denotes seasonal differencing of order $D$
+  \item $y_t$ is the log-transformed non-seasonally adjusted HPI at time $t$
+  \item $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$ is a white noise error term
+\end{itemize}
+
+It then moves on to the estimation stage where it will look at the parameters estimated by maximum likelihood estimation (MLE), and use AIC and BIC for model selection across candidate models. The lower AIC/BIC indicates the preferred model. It also goes through diagnostic checking where it checks that the residuals should behave as white noise. Includes the Ljung-Box test to check for residual autocorrelation, QQ plot to check residual normality, and inspect residual ACF/PACF to confirm no remaining structure. 
+
+
+## ARMAX/Lagged Regression
+The purpose of ARMAX/Lagged regression is to extend SARIMA by adding in additional macroeconomic variables as external predictors. This allows testing of whether macro conditions improve forecasting beyond auto regressive structure alone. It included exogenous variables such as the unemployment rate that is linked to housing demand and affordability and also GDP at constant prices which reflects the broader economic conditions. The variables are also lagged by one or more periods which allow it to realistically reflect delay and avoid simultaneity.
+
+### Model Equation
+$$
+\phi_p(B)\, \nabla^d\, y_t = \sum_{k=1}^{K} \beta_k x_{k,t} + \theta_q(B)\, \varepsilon_t
+$$
+where:
+\begin{itemize}
+  \item $y_t$ is the log-transformed non-seasonally adjusted HPI at time $t$
+  \item $\phi_p(B)$ and $\theta_q(B)$ are the autoregressive and moving average polynomials as defined in Section 3.1
+  \item $\nabla^d = (1-B)^d$ denotes regular differencing of order $d$
+  \item $x_{k,t}$ is the $k$-th exogenous variable at time $t$, where $k = 1$ corresponds to the unemployment rate and $k = 2$ corresponds to GDP at constant prices, each lagged by one or more periods
+  \item $\beta_k$ is the coefficient associated with the $k$-th exogenous variable
+  \item $K$ is the total number of exogenous variables included in the model
+  \item $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$ is a white noise error term
+\end{itemize}
+
+To evaluate the model it compares AIC and BIC against the baseline SARIMA model. It also tests the statistical significance of exogenous variables coefficients. Then it evaluates forecast accuracy using RMSE and MAE on a held out test set. Lastly it compares the SARIMA vs ARMAX forecasts to determine if macro variables add predictive value. 
+
+# Results
+```{r, message = FALSE}
+library(astsa)
+library(forecast)
+library(tseries)
+library(tidyverse)
+library(zoo)
+library(lubridate)
+library(ggplot2)
+```
+### Time Series Plots
+```{r, fig.show="hold", out.width = "50%"}
+df <- read.csv("USDataset.csv")
+hpi_data <- df %>% 
+  filter( level == "USA or Census Division", place_name == "United States", hpi_flavor == "purchase-only", frequency == "monthly", hpi_type == "traditional") %>%
+  arrange(yr, period)
+
+hpi_ts <- ts(hpi_data$index_nsa, start = c(1991, 1), frequency = 12)
+hpi_log <- log(hpi_ts)
+
+autoplot(hpi_ts) + labs(title = "US House Price Index (Non-Seasonally Adjusted)", subtitle = "January 1991 to December 2023", x = "Year", y = "HPI (index_nsa)") + theme_minimal()
+
+autoplot(hpi_log) + labs(title = "Log-Transformed HPI", x = "Year", y = "Log(HPI") + theme_minimal()
+```
+The Original HPI series shows a long-run upward trend with a visible boom and bust cycle from 2006-2012. It also has steep acceleration after 2020 reflecting the Covid-19 housing boom. The series is clearly non-stationary due to the strong upward trend and the variance appears to increase over time leading to the the log transformation. After the log transformation it still includes an upward trend leading to it needed differencing. The 2007-2009 decline and 2020-2023 are still visible but smoother. There are no seasonal spikes and it is still non-stationary meaning that regular and seasonal differencing will be needed. 
+
+### ADF and KPSS stationarity tests
+```{r}
+adf.test(hpi_log)
+kpss.test(hpi_log)
+```
+From the ADF test we fail to reject the null hypothesis meaning that the series is non-stationary. The KPSS test we reject the null hypothesis meaning again the series is non-stationary.
+
+```{r}
+hpi_log_diff <- diff(hpi_log, differences = 1)
+adf.test(hpi_log_diff)
+kpss.test(hpi_log_diff)
+```
+The ADF test suggests that the series is stationary while the KPSS test does not leading to using seasonal differencing.
+
+```{r}
+hpi_log_diff2 <- diff(hpi_log_diff, lag = 12, differences = 1)
+adf.test(hpi_log_diff2)
+kpss.test(hpi_log_diff2)
+```
+After the seasonally differencing both tests show that the series is stationary.
+
+```{r, fig.show="hold", out.width="50%"}
+# Plot the first differenced series
+autoplot(hpi_log_diff) +
+  labs(
+    title = "First Differenced Log HPI",
+    x     = "Year",
+    y     = "First Difference"
+  ) +
+  theme_minimal()
+
+# Plot the seasonally differenced series
+autoplot(hpi_log_diff2) +
+  labs(
+    title = "Seasonally Differenced Log HPI",
+    x     = "Year",
+    y     = "Seasonal Difference"
+  ) +
+  theme_minimal()
+```
+After the differencing the graphs no longer show an upward trend with both fluctuating around 0. Although it still has increased volatility around 2008-2010 and 2020-2023. 
+
+```{r, fig.show = "hold", out.width = "50%"}
+ggAcf(hpi_log_diff2, lag.max = 48) + labs(title = "ACF of Differenced Log HPI") + theme_minimal()
+ggPacf(hpi_log_diff2, lag.max = 48) + labs(title = "PACF of Differenced Log HPI") + theme_minimal()
+```
+
+
+# Conclusion and Future Study
+
+
+## References
+
+## Appendix
